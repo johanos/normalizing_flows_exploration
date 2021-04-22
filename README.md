@@ -1,2 +1,2 @@
 # normalizing_flows_exploration
-Repo For COS 598B Project
+use the requirements.txt file to load the right libraries.
