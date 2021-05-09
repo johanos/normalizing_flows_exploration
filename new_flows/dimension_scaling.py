@@ -3,6 +3,8 @@ import numpy as np
 import torch 
 from torch.nn import functional as F
 from nflows.transforms.base import Transform
+from nflows.utils import torchutils
+
 
 class ScalingTransform(Transform):
     """
@@ -23,18 +25,18 @@ class ScalingTransform(Transform):
 
         batch_size = inputs.shape[0]
 
-        
-        sign_vec = torch.ones(batch_size, 1)
-        # if self.negative: 
-        #     sign_vec = -1 * sign_vec
+        sign = -1 if self.negative else 1
 
-        exp_scale = torch.exp(self.weights)
-        final_scaling = sign_vec * exp_scale
+        ones_vec =  torch.ones(batch_size, 1)
 
-        z = sign_vec * final_scaling * inputs
+        exp_scale = sign * torch.exp(self.weights)
+        final_scaling = ones_vec * exp_scale
 
-        log_det = float(torch.sum(self.weights))
-        logabsdet = torch.full((batch_size,), log_det)
+        z = final_scaling * inputs
+
+        logabsdet = torchutils.logabsdet(torch.diag(exp_scale))
+        logabsdet = logabsdet * z.new_ones(batch_size)
+
         return z, logabsdet
     
     def inverse(self, z, context=None):
@@ -43,16 +45,12 @@ class ScalingTransform(Transform):
         """
         batch_size = z.shape[0]
         
-        sign_vec = torch.ones(z.shape[0], 1)
-        
-        # if self.negative:
-        #     sign_vec = -1 * sign_vec
-        
-        scale_vec = torch.exp(self.weights)
-        x = sign_vec * (1.0 / scale_vec)
+        sign = -1 if self.negative else 1
+        ones_vec =  torch.ones(batch_size, 1)
 
-        log_det = float(torch.sum(-self.weights))
+        exp_scale = sign * torch.exp(self.weights)
+        x = (1.0 / exp_scale) * z
 
-        logabsdet = torch.full((batch_size,), log_det)
-
-        return x, log_det
+        logabsdet = torchutils.logabsdet(torch.diag(exp_scale))
+        logabsdet = logabsdet * x.new_ones(batch_size)
+        return x, logabsdet
