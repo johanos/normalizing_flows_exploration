@@ -35,6 +35,8 @@ class ScalingTransform(Transform):
         z = final_scaling * inputs
 
         logabsdet = torchutils.logabsdet(torch.diag(exp_scale))
+        # log((-1)^n) is zero for even dimesions so its not a thing I need to put here. 
+        # but to make this "Correct" I should
         logabsdet = logabsdet * z.new_ones(batch_size)
 
         return z, logabsdet
